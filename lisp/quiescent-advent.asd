@@ -16,4 +16,5 @@
   :depends-on (:trivia :alexandria :cl-ppcre :trivia.ppcre :arrow-macros :iterate :metabang-bind :arrow-macros :anaphora :cl-heap)
   :components ((:file "day1" :depends-on ("lib"))
                (:file "day2" :depends-on ("lib"))
+               (:file "day3" :depends-on ("lib"))
                (:file "lib")))
