@@ -17,4 +17,5 @@
   :components ((:file "day1" :depends-on ("lib"))
                (:file "day2" :depends-on ("lib"))
                (:file "day3" :depends-on ("lib"))
+               (:file "day4" :depends-on ("lib"))
                (:file "lib")))
