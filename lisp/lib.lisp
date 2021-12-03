@@ -8,13 +8,15 @@
    :anaphora
    :cl-heap)
 
-  (:export :read-problem))
+  (:shadowing-import-from :arrow-macros :-<>)
+  (:shadowing-import-from :arrow-macros :<>)
+  (:export :read-problem)
+  (:export :read-whole-file))
 
 (in-package :lib)
 
 (defun read-problem (file-name)
-  (with-open-file (input file-name)
-    (iter
-      (for line = (read-line input nil nil))
-      (while line)
-      (collecting line))))
+  (uiop:read-file-lines file-name))
+
+(defun read-whole-file (file-name)
+  (uiop:read-file-string file-name))
