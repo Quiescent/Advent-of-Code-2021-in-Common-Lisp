@@ -12,7 +12,8 @@
   (:shadowing-import-from :arrow-macros :<>)
   (:export :read-problem)
   (:export :read-whole-file)
-  (:export :xgcd))
+  (:export :xgcd)
+  (:export :md5))
 
 (in-package :lib)
 
@@ -49,3 +50,7 @@
     (finally (return (values (aref vs 0)
                              (aref vs 1)
                              (aref vs 2))))))
+
+(defun md5 (str)
+  (byte-array-to-hex-string
+   (digest-sequence :md5 (flexi-streams:string-to-octets str))))
