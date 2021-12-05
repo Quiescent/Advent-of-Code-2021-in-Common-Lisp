@@ -23,31 +23,16 @@
   (uiop:read-file-string file-name))
 
 (defun vector-sub (xs ys)
-  (iter
-    (for x in-vector xs)
-    (for y in-vector ys)
-    (for i from 0)
-    (collecting (- x y) :result-type vector)))
+  (map 'vector (lambda (x y) (- x y)) xs ys))
 
 (defun vector-sub-into (xs ys zs)
-  (iter
-    (for x in-vector xs)
-    (for y in-vector ys)
-    (for i from 0)
-    (setf (aref zs i) (- x y))
-    (finally (return zs))))
+  (map-into zs (lambda (x y) (- x y)) xs ys))
 
 (defun scaler-mult (x ys)
-  (iter
-    (for y in-vector ys)
-    (collecting (* y x) :result-type vector)))
+  (map 'vector (lambda (y) (* x y)) ys))
 
 (defun scaler-mult-into (x ys zs)
-  (iter
-    (for y in-vector ys)
-    (for i from 0)
-    (setf (aref zs i) (* y x))
-    (finally (return ys))))
+  (map-into zs (lambda (y) (* y x)) ys))
 
 (defun xgcd (m n)
   (iter
