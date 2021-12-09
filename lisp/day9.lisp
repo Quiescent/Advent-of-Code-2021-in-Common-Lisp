@@ -78,11 +78,10 @@
     (with count = 0)
     (initially
      (iter
-       (for point in (print (low-points)))
+       (for point in (low-points))
        (for label from 0)
        (setf (gethash point membership) label)))
     (while (< count (* (length map) (length (aref map 0)))))
-    (format t "count: ~a~%" count)
     (for p-count = count)
     (iter
      (for i from 0 below (length map))
@@ -93,23 +92,13 @@
          (next-iteration))
        (when (null (gethash (cons i j) membership))
          (let ((up-label    (gethash (cons (1- i) j) membership))
-               (down-label  (gethash (print (cons (1+ i) j)) membership))
+               (down-label  (gethash (cons (1+ i) j) membership))
                (left-label  (gethash (cons i (1- j)) membership))
                (right-label (gethash (cons i (1+ j)) membership))
                (up          (if (> i 0)                          (aref (aref map (1- i)) j) nil))
                (left        (if (> j 0)                          (aref (aref map i) (1- j)) nil))
                (down        (if (< i (1- (length map)))          (aref (aref map (1+ i)) j) nil))
                (right       (if (< j (1- (length (aref map 0)))) (aref (aref map i) (1+ j)) nil)))
-           (format t "(cons i j): ~a~%" (cons i j))
-           (format t "up-label: ~a~%" up-label)
-           (format t "left-label: ~a~%" left-label)
-           (format t "right-label: ~a~%" right-label)
-           (format t "down-label: ~a~%" down-label)
-           (format t "up: ~a~%" up)
-           (format t "left: ~a~%" left)
-           (format t "right: ~a~%" right)
-           (format t "down: ~a~%" down)
-           (format t "point: ~a~%" point)
            (cond
              ((and up-label
                    (<= up (car (sort (remove nil (list left down right)) #'<)))
@@ -130,10 +119,9 @@
                 (incf count)
                 (setf (gethash (cons i j) membership) down-label)))
              ((and right-label
-                   (<= right (car (sort (print (remove nil (list left down up))) #'<)))
+                   (<= right (car (sort (remove nil (list left down up)) #'<)))
                    (< right point))
               (progn
-                (format t "Setting to right's group~%")
                 (incf count)
                 (setf (gethash (cons i j) membership) right-label))))))))
     (when (= p-count count)
