@@ -29,4 +29,5 @@
                (:file "day13" :depends-on ("lib"))
                (:file "day14" :depends-on ("lib"))
                (:file "day15" :depends-on ("lib"))
+               (:file "day16" :depends-on ("lib"))
                (:file "lib")))
