@@ -75,3 +75,23 @@
 
 (defun number-to-binary-string (str)
   (format nil "~b" str))
+
+(defun map-bounds (map)
+  (iter
+    (for ((x . y) _) in-hashtable map)
+    (minimizing x into min-x)
+    (maximizing x into max-x)
+    (minimizing y into min-y)
+    (maximizing y into max-y)
+    (finally (return (list min-x min-y max-x max-y)))))
+
+(defun print-map (map)
+  (bind (((min-x min-y max-x max-y) (map-bounds map)))
+    (iter
+      (for y from min-y to max-y)
+      (iter
+        (for x from min-x to max-x)
+        (if (gethash (cons x y) map)
+            (format t "#")
+            (format t " ")))
+      (format t "~%"))))
