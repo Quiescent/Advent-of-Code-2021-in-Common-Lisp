@@ -54,3 +54,24 @@
 (defun md5 (str)
   (byte-array-to-hex-string
    (digest-sequence :md5 (flexi-streams:string-to-octets str))))
+
+(defun hex-string-to-number (str)
+  (read-from-string (format nil "#x~a" str)))
+
+(defun binary-string-to-number (str)
+  (read-from-string (format nil "#b~a" str)))
+
+(defun number-string-to-number (str)
+  (read-from-string str))
+
+(defun hex-string-to-binary-string (str)
+  (format nil "~B" (hex-string-to-number str)))
+
+(defun hex-string-to-decimal-string (str)
+  (format nil "~a" (hex-string-to-number str)))
+
+(defun number-to-hex-string (str)
+  (format nil "~x" str))
+
+(defun number-to-binary-string (str)
+  (format nil "~b" str))
