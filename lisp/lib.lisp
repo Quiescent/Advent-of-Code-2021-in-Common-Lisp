@@ -95,3 +95,10 @@
             (format t "#")
             (format t " ")))
       (format t "~%"))))
+
+(defun reverse-map (map &optional (test #'equal))
+  (iter
+    (with rev-map = (make-hash-table :test test))
+    (for (key value) in-hashtable map)
+    (setf (gethash value rev-map) key)
+    (finally (return rev-map))))
