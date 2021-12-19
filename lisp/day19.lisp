@@ -92,43 +92,61 @@
               (finally (return all-scanners))))))
 
 (defun find-x-offsets (scanner-1 scanner-2)
-  (iter
-    (for offset from -3000 to 3000)
-    (for count =
-         (iter
-           (for (x-1 y-1 z-1) in scanner-1)
-           (counting
-            (iter
-              (for (x-2 y-2 z-2) in scanner-2)
-              (thereis (= (+ x-2 offset) x-1))))))
-    (when (>= count 12)
-      (collecting (cons count offset)))))
+  (let ((deltas (iter outer
+                  (for beacon-1 in scanner-1)
+                  (iter
+                    (for beacon-2 in scanner-2)
+                    (in outer (collecting (- (car beacon-1) (car beacon-2))))
+                    (in outer (collecting (- (car beacon-2) (car beacon-1))))))))
+    (iter
+      (for offset in deltas)
+      (for count =
+           (iter
+             (for (x-1 y-1 z-1) in scanner-1)
+             (counting
+              (iter
+                (for (x-2 y-2 z-2) in scanner-2)
+                (thereis (= (+ x-2 offset) x-1))))))
+      (when (>= count 12)
+        (collecting (cons count offset))))))
 
 (defun find-y-offsets (scanner-1 scanner-2)
-  (iter
-    (for offset from -3000 to 3000)
-    (for count =
-         (iter
-           (for (x-1 y-1 z-1) in scanner-1)
-           (counting
-            (iter
-              (for (x-2 y-2 z-2) in scanner-2)
-              (thereis (= (+ y-2 offset) y-1))))))
-    (when (>= count 12)
-      (collecting (cons count offset)))))
+  (let ((deltas (iter outer
+                  (for beacon-1 in scanner-1)
+                  (iter
+                    (for beacon-2 in scanner-2)
+                    (in outer (collecting (- (cadr beacon-2) (cadr beacon-1))))
+                    (in outer (collecting (- (cadr beacon-1) (cadr beacon-2))))))))
+    (iter
+      (for offset in deltas)
+      (for count =
+           (iter
+             (for (x-1 y-1 z-1) in scanner-1)
+             (counting
+              (iter
+                (for (x-2 y-2 z-2) in scanner-2)
+                (thereis (= (+ y-2 offset) y-1))))))
+      (when (>= count 12)
+        (collecting (cons count offset))))))
 
 (defun find-z-offsets (scanner-1 scanner-2)
-  (iter
-    (for offset from -3000 to 3000)
-    (for count =
-         (iter
-           (for (x-1 y-1 z-1) in scanner-1)
-           (counting
-            (iter
-              (for (x-2 y-2 z-2) in scanner-2)
-              (thereis (= (+ z-2 offset) z-1))))))
-    (when (>= count 12)
-      (collecting (cons count offset)))))
+  (let ((deltas (iter outer
+                  (for beacon-1 in scanner-1)
+                  (iter
+                    (for beacon-2 in scanner-2)
+                    (in outer (collecting (- (caddr beacon-2) (caddr beacon-1))))
+                    (in outer (collecting (- (caddr beacon-1) (caddr beacon-2))))))))
+    (iter
+      (for offset in deltas)
+      (for count =
+           (iter
+             (for (x-1 y-1 z-1) in scanner-1)
+             (counting
+              (iter
+                (for (x-2 y-2 z-2) in scanner-2)
+                (thereis (= (+ z-2 offset) z-1))))))
+      (when (>= count 12)
+        (collecting (cons count offset))))))
 
 (defun compute-offsets (scanner-1 scanner-2)
   (list (car (sort (find-x-offsets scanner-1 scanner-2) #'> :key #'car))
@@ -199,63 +217,70 @@
     (finally
      (return
        (->> (remove-duplicates all-beacons :test #'equal)
-         length)))
-
-
-
-
-    ;; (for (key scanner) in-hashtable scanners)
-    ;; (when (eq key 0)
-    ;;   (collecting scanner into result)
-    ;;   (next-iteration))
-    ;; (for path =
-    ;;      (iter
-    ;;        ;; (with this-scanner = scanner)
-    ;;        (with from = (make-hash-table :test #'eq))
-    ;;        (with stack = (list key))
-    ;;        (with seen = ())
-    ;;        (for current = (pop stack))
-    ;;        (while (/= current 0))
-    ;;        (for next-links = (gethash current graph))
-    ;;        (iter
-    ;;          (for (next-key . _) in next-links)
-    ;;          (when (member next-key seen)
-    ;;            (next-iteration))
-    ;;          (push next-key seen)
-    ;;          (push next-key stack)
-    ;;          (setf (gethash next-key from) current))
-    ;;        (finally
-    ;;         (return
-    ;;           (iter
-    ;;             (for current initially 0 then (gethash current from))
-    ;;             (while (/= current key))
-    ;;             (collecting current :at start))))))
-    ;; (iter
-    ;;   (with current = key)
-    ;;   (for step in path)
-    ;;   (for edges = (gethash current graph))
-    ;;   (for (other-key . _) = (find step edges :key #'car))
-    ;;   (for (_key (_diff rotated)) = (match-scanners ))
-    ;;   (iter
-    ;;     (for beacon in scanner)
-    ;;     (decf (car beacon) dx)
-    ;;     (decf (cadr beacon) dy)
-    ;;     (decf (caddr beacon) dz))
-    ;;   (setf current step))
-    ;; (format t "scanner: ~a~%" scanner)
-    ;; (collecting scanner into result)
-    ;; (finally
-    ;;  (return
-    ;;    (-<> (apply #'concatenate 'list result)
-    ;;      (remove-duplicates <> :test #'equal)
-    ;;      length)))
-    ))
+         length)))))
 
 (defun part-1 ()
   (let* ((scanners (parse-problem))
          (graph (find-matches scanners)))
     (all-relative-to-0 graph scanners)))
 
+;; => 512
+
+(defun manhattan (a b)
+  (bind (((x-1 y-1 z-1) a)
+         ((x-2 y-2 z-2) b))
+    (+ (abs (- x-1 x-2))
+       (abs (- y-1 y-2))
+       (abs (- z-1 z-2)))))
+
+(defun furthest-scanners (graph scanners)
+  (iter
+    (with to-explore = (make-queue :simple-queue))
+    (initially
+     (dolist (key (->> (mapcar #'car (gethash 0 graph))))
+       (qpush to-explore (list key (gethash 0 scanners) (list 0 0 0)))))
+    (with seen = (list 0))
+
+    (for (key prev-scanner (p-dx p-dy p-dz)) = (qpop to-explore))
+    (format t "key: ~a~%" key)
+    (format t "prev-scanner: ~a~%" prev-scanner)
+    (format t "(list p-dx p-dy p-dz): ~a~%" (list p-dx p-dy p-dz))
+    (for (dx dy dz scanner) = (match-scanners prev-scanner (gethash key scanners)))
+    (collecting (list (+ dx p-dx) (+ dy p-dy) (+ dz p-dz)) into result)
+
+    (iter
+      (for (other-key . _) in (gethash key graph))
+      (when (member other-key seen)
+        (next-iteration))
+      (format t "enqueueing other-key: ~a~%" other-key)
+      (qpush to-explore (list other-key scanner (list (+ p-dx)
+                                                      (+ p-dy)
+                                                      (+ p-dz))))
+      (push other-key seen))
+
+    (while (/= 0 (qsize to-explore)))
+
+    (finally
+     (format t "points: ~a~%" result)
+     (return
+       (iter
+         (for points on (cons (list 0 0 0) result))
+         (for point = (car points))
+         (when (cdr points)
+           (maximizing
+            (iter
+              (for other-point in (cdr points))
+              (maximizing (manhattan point other-point))))))))
+    ))
+
+;; Problem actually solved by storing and fiddling with intermediary
+;; values in the REPL.
+
+;; 108624 too high!
+;; 15739 too low!
+
+(defun part-2 ()
+  )
 
 ;; Bin
 
