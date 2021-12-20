@@ -13,7 +13,10 @@
   (:export :read-problem)
   (:export :read-whole-file)
   (:export :xgcd)
-  (:export :md5))
+  (:export :md5)
+  (:export :binary-string-to-number)
+  (:export :map-bounds)
+  (:export :print-map))
 
 (in-package :lib)
 
