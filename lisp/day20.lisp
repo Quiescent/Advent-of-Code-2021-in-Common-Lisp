@@ -36,13 +36,19 @@
         (setf (gethash (cons x y) map) t)))
     (finally (return map))))
 
-(defun string-from-position (map position)
-  (bind (((x . y) position))
+(defun string-from-position (map position outside-is-lit)
+  (bind (((x . y) position)
+         ((min-x min-y max-x max-y) (map-bounds map)))
     (iter outer
       (for yi from (1- y) to (1+ y))
       (iter
         (for xi from (1- x) to (1+ x))
-        (in outer (collecting (if (gethash (cons xi yi) map) #\1 #\0)
+        (in outer (collecting (if (or (< xi min-x)
+                                      (> xi max-x)
+                                      (< yi min-y)
+                                      (> yi max-y))
+                                  (if outside-is-lit #\1 #\0)
+                                  (if (gethash (cons xi yi) map) #\1 #\0))
                               :result-type 'string))))))
 
 (defun part-1 ()
@@ -54,10 +60,10 @@
       (for (min-x min-y max-x max-y) = (map-bounds current-map))
       (for next-map = (make-hash-table :test #'equal))
       (iter
-        (for y from (- min-y 50) to (+ max-y 50))
+        (for y from (- min-y 9) to (+ max-y 9))
         (iter
-          (for x from (- min-x 50) to (+ max-x 50))
-          (for binary-string = (string-from-position current-map (cons x y)))
+          (for x from (- min-x 9) to (+ max-x 9))
+          (for binary-string = (string-from-position current-map (cons x y) (oddp i)))
           (for index = (binary-string-to-number binary-string))
           (when (char= (aref translations index) #\#)
             (setf (gethash (cons x y) next-map) t))))
@@ -70,10 +76,10 @@
            (for (key value) in-hashtable current-map)
            (counting t)))))))
 
-;; 5619
+;; 5619 correct!
 
-;; 5685 wrong
-;; 5214 wrong
+;; 5685 wrong!
+;; 5214 wrong!
 
 (defun part-2 ()
   (bind (((translations . vector-map) (parse-problem))
@@ -87,7 +93,7 @@
         (for y from (- min-y 9) to (+ max-y 9))
         (iter
           (for x from (- min-x 9) to (+ max-x 9))
-          (for binary-string = (string-from-position current-map (cons x y)))
+          (for binary-string = (string-from-position current-map (cons x y) (oddp i)))
           (for index = (binary-string-to-number binary-string))
           (when (char= (aref translations index) #\#)
             (setf (gethash (cons x y) next-map) t))))
