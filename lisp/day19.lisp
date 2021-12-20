@@ -310,15 +310,16 @@
 ;;            (finding (cons count offsets) maximizing count)))
 ;;     (finding (cons count offsets) maximizing count)))
 
-(defun permutations (xs)
-  (if (= (length xs) 1)
-      (list xs)
-      (iter outer
-        (for x in xs)
-        (for rest = (remove x xs))
-        (iter
-          (for other in (permutations rest))
-          (in outer (collecting (cons x other)))))))
+(eval-when (:compile :load-toplevel :eval-toplevel)
+ (defun permutations (xs)
+   (if (= (length xs) 1)
+       (list xs)
+       (iter outer
+         (for x in xs)
+         (for rest = (remove x xs))
+         (iter
+           (for other in (permutations rest))
+           (in outer (collecting (cons x other))))))))
 
 (defun vector-matrix-mult (vector matrix)
   (bind (((x y z) vector)
