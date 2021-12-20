@@ -62,7 +62,12 @@
   (read-from-string (format nil "#x~a" str)))
 
 (defun binary-string-to-number (str)
-  (read-from-string (format nil "#b~a" str)))
+  (let ((len (length str)))
+    (iter
+      (for char in-string str)
+      (for i from len downto 0)
+      (when (char= char #\1)
+        (summing (expt 2 (1- i)))))))
 
 (defun number-string-to-number (str)
   (read-from-string str))
