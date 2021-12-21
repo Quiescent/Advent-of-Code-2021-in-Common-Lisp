@@ -22,11 +22,6 @@
 ;; Player 1 starting position: 4
 ;; Player 2 starting position: 5
 
-
-(defun parse-problem ()
-  (->> (read-problem "day21.in")
-    ))
-
 (defun part-1 ()
   (iter
     (with player-1 = 3)
