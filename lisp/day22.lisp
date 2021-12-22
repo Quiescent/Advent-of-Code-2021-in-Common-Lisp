@@ -54,7 +54,7 @@
 (defun part-1 ()
   (bind ((map (make-hash-table :test #'equal)))
     (iter
-      (for i from 0 below 20)
+      (for i from 0 below 14)
       (for (op x-start
                x-end
                y-start
@@ -79,23 +79,24 @@
 ;; * max(min(c',z')-max(c,z),0)
 
 (defun intersecting-area (box-1 box-2)
-  (bind (((op-1 x-start-1 x-end-1 y-start-1 y-end-1 z-start-1 z-end-1) box-1)
-         ((op-2 x-start-2 x-end-2 y-start-2 y-end-2 z-start-2 z-end-2) box-2))
+  (bind (((op-1 x-start-1 x-end-1 y-start-1 y-end-1 z-start-1 z-end-1 . rest) box-1)
+         ((op-2 x-start-2 x-end-2 y-start-2 y-end-2 z-start-2 z-end-2 . rest) box-2))
     (* (max (1+ (- (min x-end-1 x-end-2) (max x-start-1 x-start-2))) 0)
        (max (1+ (- (min y-end-1 y-end-2) (max y-start-1 y-start-2))) 0)
        (max (1+ (- (min z-end-1 z-end-2) (max z-start-1 z-start-2))) 0))))
 
 (defun intersecting-box (box-1 box-2)
-  (bind (((op-1 x-start-1 x-end-1 y-start-1 y-end-1 z-start-1 z-end-1) box-1)
-         ((op-2 x-start-2 x-end-2 y-start-2 y-end-2 z-start-2 z-end-2) box-2))
+  (bind (((op-1 x-start-1 x-end-1 y-start-1 y-end-1 z-start-1 z-end-1 . rest) box-1)
+         ((op-2 x-start-2 x-end-2 y-start-2 y-end-2 z-start-2 z-end-2 . rest) box-2))
     (and (> (intersecting-area box-1 box-2) 0)
-         (list op-1
+         (list (list op-1 op-2)
                (max x-start-1 x-start-2)
                (min x-end-1   x-end-2)
                (max y-start-1 y-start-2)
                (min y-end-1   y-end-2)
                (max z-start-1 z-start-2)
-               (min z-end-1   z-end-2)))))
+               (min z-end-1   z-end-2)
+               box-2))))
 
 (defun areas-seen (box boxes-added)
   (bind ((overlaps (->> (mapcar (lambda (other-box) (intersecting-box box other-box))
@@ -106,13 +107,25 @@
         (iter
           (for tail on overlaps)
           (for overlap = (car tail))
-          (for (op x-start x-end y-start y-end z-start z-end) = overlap)
-          (summing (* (1+ (- x-end x-start))
-                      (1+ (- y-end y-start))
-                      (1+ (- z-end z-start)))
-                   :into overlap-area)
-          (summing (areas-seen overlap (cdr tail))
-                   :into overlap-area-seen)
+          (for ((op-1 op-2) x-start x-end y-start y-end z-start z-end other-box) = overlap)
+          (when (and (eq op-1 op-2) (eq op-1 'off))
+            (next-iteration))
+          (if (eq op-2 'off)
+              (progn
+                (format t "here!~%")
+                (summing (- (* (1+ (- x-end x-start))
+                                (1+ (- y-end y-start))
+                                (1+ (- z-end z-start))))
+                         :into overlap-area)
+                (summing (- (areas-seen other-box (cdr tail)) (areas-seen overlap (cdr tail)))
+                         :into overlap-area-seen))
+              (progn
+                (summing (* (1+ (- x-end x-start))
+                            (1+ (- y-end y-start))
+                            (1+ (- z-end z-start)))
+                         :into overlap-area)
+                (summing (areas-seen overlap (cdr tail))
+                         :into overlap-area-seen)))
           (finally (return (- overlap-area overlap-area-seen))))
         0)))
 
@@ -120,7 +133,7 @@
   (bind ((instructions (parse-problem))
          (boxes-added  (list)))
     (iter
-      (for i from 0 below 10)
+      (for i from 0 below 14)
       (for (op x-start
                x-end
                y-start
@@ -130,19 +143,20 @@
       ;; For all the boxs we already have, remove the intersecting
       ;; boxes from this one by intersecting with all of the removed
       ;; boxes and then adding to the list of removed boxes.
-      (when (eq op 'on)
-        (bind ((current-box (list op
-                                  x-start
-                                  x-end
-                                  y-start
-                                  y-end
-                                  z-start
-                                  z-end))
-               (areas-seen (areas-seen current-box boxes-added)))
-          (summing (- (* (1+ (- x-end x-start))
-                         (1+ (- y-end y-start))
-                         (1+ (- z-end z-start)))
-                      areas-seen))
-          (push current-box boxes-added))))))
+      (bind ((current-box (list op
+                                x-start
+                                x-end
+                                y-start
+                                y-end
+                                z-start
+                                z-end))
+             (areas-seen (areas-seen current-box boxes-added)))
+        (if (eq op 'on)
+            (summing (- (* (1+ (- x-end x-start))
+                           (1+ (- y-end y-start))
+                           (1+ (- z-end z-start)))
+                        areas-seen))
+            (summing (- areas-seen)))
+        (push current-box boxes-added)))))
 
 ;; 870227697432749 too low!
