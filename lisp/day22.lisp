@@ -85,14 +85,37 @@
           (for (x-start x-end sub-regions) = region)
           (with added)
           (cond
-            ;; Turn on with any overlap
-            ((and (eq op 'on) (or (and (>= xi-start x-start) (<= xi-end x-end))
-                                  (and (<= xi-start x-start) (>= xi-end x-start))
-                                  (and (>= xi-end x-end)     (<= xi-start x-end))))
+            ;; Turn on with region contained
+            ((and (eq op 'on) (<= xi-start x-start) (>= xi-end x-end))
              (setf added t)
-             (collecting (list (min xi-start x-start)
-                               (max xi-end x-end)
-                               (add-region-y op interval sub-regions)) into result))
+             (when (/= x-start xi-start)
+               (collecting (list xi-start (1- x-start) (add-region-y op interval nil)) into result))
+             (collecting (list x-start x-end (add-region-y op interval sub-regions)) into result)
+             (when (/= xi-end x-end)
+               (collecting (list (1+ x-end) xi-end (add-region-y op interval nil)) into result)))
+
+            ;; Turn on with overlap contained
+            ((and (eq op 'on) (>= xi-start x-start) (<= xi-end x-end))
+             (setf added t)
+             (when (/= x-start xi-start)
+               (collecting (list x-start     (1- xi-start) sub-regions) into result))
+             (collecting (list xi-start    xi-end        (add-region-y op interval sub-regions)) into result)
+             (when (/= xi-end x-end)
+               (collecting (list (1+ xi-end) x-end         sub-regions) into result)))
+
+            ;; Turn on with overlap at start
+            ((and (eq op 'on) (<= xi-start x-start) (>= xi-end x-start))
+             (setf added t)
+             (collecting (list xi-start    (1- x-start) (add-region-y 'on interval nil)) into result)
+             (collecting (list x-start     xi-end       (add-region-y 'on interval sub-regions)) into result)
+             (collecting (list (1+ xi-end) x-end        sub-regions) into result))
+
+            ;; Turn on with overlap at end
+            ((and (eq op 'on) (>= xi-end x-end) (<= xi-start x-end))
+             (setf added t)
+             (collecting (list x-start    (1- xi-start) sub-regions) into result)
+             (collecting (list xi-start   x-end         (add-region-y 'on interval sub-regions)) into result)
+             (collecting (list (1+ x-end) xi-end        (add-region-y 'on interval nil)) into result))
 
             ;; Turn off with entire unit contained (don't re-add region)
             ((and (eq op 'off) (<= xi-start x-start) (>= xi-end x-end)) nil)
@@ -126,14 +149,37 @@
           (for (y-start y-end sub-regions) = region)
           (with added)
           (cond
-            ;; Turn on with any overlap
-            ((and (eq op 'on) (or (and (>= yi-start y-start) (<= yi-end y-end))
-                                  (and (<= yi-start y-start) (>= yi-end y-start))
-                                  (and (>= yi-end y-end)     (<= yi-start y-end))))
+            ;; Turn on with region contained
+            ((and (eq op 'on) (<= yi-start y-start) (>= yi-end y-end))
              (setf added t)
-             (collecting (list (min yi-start y-start)
-                               (max yi-end y-end)
-                               (add-region-z op interval sub-regions)) into result))
+             (when (/= y-start yi-start)
+               (collecting (list yi-start (1- y-start) (add-region-z op interval nil)) into result))
+             (collecting (list y-start y-end (add-region-z op interval sub-regions)) into result)
+             (when (/= yi-end y-end)
+               (collecting (list (1+ y-end) yi-end (add-region-z op interval nil)) into result)))
+
+            ;; Turn on with overlap contained
+            ((and (eq op 'on) (>= yi-start y-start) (<= yi-end y-end))
+             (setf added t)
+             (when (/= y-start yi-start)
+               (collecting (list y-start     (1- yi-start) sub-regions) into result))
+             (collecting (list yi-start    yi-end        (add-region-z op interval sub-regions)) into result)
+             (when (/= yi-end y-end)
+               (collecting (list (1+ yi-end) y-end         sub-regions) into result)))
+
+            ;; Turn on with overlap at start
+            ((and (eq op 'on) (<= yi-start y-start) (>= yi-end y-start))
+             (setf added t)
+             (collecting (list yi-start    (1- y-start) (add-region-z 'on interval nil)) into result)
+             (collecting (list y-start     yi-end       (add-region-z 'on interval sub-regions)) into result)
+             (collecting (list (1+ yi-end) y-end        sub-regions) into result))
+
+            ;; Turn on with overlap at end
+            ((and (eq op 'on) (>= yi-end y-end) (<= yi-start y-end))
+             (setf added t)
+             (collecting (list y-start    (1- yi-start) sub-regions) into result)
+             (collecting (list yi-start   y-end         (add-region-z 'on interval sub-regions)) into result)
+             (collecting (list (1+ y-end) yi-end        (add-region-z 'on interval nil)) into result))
 
             ;; Turn off with entire unit contained (don't re-add region)
             ((and (eq op 'off) (<= yi-start y-start) (>= yi-end y-end)) nil)
@@ -167,6 +213,15 @@
           (for (z-start z-end sub-regions) = region)
           (with added)
           (cond
+            ;; Turn on with region contained
+            ((and (eq op 'on) (<= zi-start z-start) (>= zi-end z-end))
+             (setf added t)
+             (when (/= z-start zi-start)
+               (collecting (list zi-start (1- z-start) nil) into result))
+             (collecting (list z-start z-end nil) into result)
+             (when (/= zi-end z-end)
+               (collecting (list (1+ z-end) zi-end nil) into result)))
+
             ;; Turn on with any overlap
             ((and (eq op 'on) (or (and (>= zi-start z-start) (<= zi-end z-end))
                                   (and (<= zi-start z-start) (>= zi-end z-start))
@@ -199,10 +254,13 @@
                  result)))))))
 
 #+nil
-(->> (add-region-x 'ON '(0 5 0 5 0 5) nil) (add-region-x 'ON '(0 5 0 5 0 5)))
+(->> (add-region-x 'on '(0 5 0 5 0 5) nil) (add-region-x 'on '(0 5 0 5 0 5)))
 
 #+nil
-(->> (add-region-x 'ON '(0 5 0 5 0 5) nil) (add-region-x 'ON '(2 7 4 9 0 5)))
+(->> (add-region-x 'on '(0 5 0 5 0 5) nil) (add-region-x 'on '(2 7 4 9 0 5)))
+
+#+nil
+(->> (add-region-x 'on '(0 5 0 5 0 5) nil) (add-region-x 'off '(2 7 4 9 0 5)))
 
 (defun region-size (region)
   (bind (((start end sub-regions) region))
