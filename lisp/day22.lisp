@@ -74,115 +74,74 @@
            (for (key value) in-hashtable map)
            (counting value)))))))
 
-;; Interval map is ((start: Number, end: Number, x: T))
-;;
-;; Sort it after each step to make merging easier.
+;; max(min(a',x')-max(a,x),0)
+;; * max(min(b',y')-max(b,y),0)
+;; * max(min(c',z')-max(c,z),0)
 
-(defun interval-map ()
-  (list))
+(defun intersecting-area (box-1 box-2)
+  (bind (((x-start-1 x-end-1 y-start-1 y-end-1 z-start-1 z-end-1) box-1)
+         ((x-start-2 x-end-2 y-start-2 y-end-2 z-start-2 z-end-2) box-2))
+    (* (max (1+ (- (min x-end-1 x-end-2) (max x-start-1 x-start-2))) 0)
+       (max (1+ (- (min y-end-1 y-end-2) (max y-start-1 y-start-2))) 0)
+       (max (1+ (- (min z-end-1 z-end-2) (max z-start-1 z-start-2))) 0))))
 
-(defun intersects (start end istart iend)
-  (or (<= start istart end)
-      (<= start iend   end)
-      (<= start istart iend end)
-      (<= istart start end iend)))
+(defun intersecting-box (box-1 box-2)
+  (bind (((x-start-1 x-end-1 y-start-1 y-end-1 z-start-1 z-end-1) box-1)
+         ((x-start-2 x-end-2 y-start-2 y-end-2 z-start-2 z-end-2) box-2))
+    (and (> (intersecting-area box-1 box-2) 0)
+         (list (max x-start-1 x-start-2)
+               (min x-end-1   x-end-2)
+               (max y-start-1 y-start-2)
+               (min y-end-1   y-end-2)
+               (max z-start-1 z-start-2)
+               (min z-end-1   z-end-2)))))
 
-(defun find-intersecting (interval-map start end)
-  (assert (>= end start))
-  (iter
-    (for cell on interval-map)
-    (for p-interval previous cell)
-    (for (istart iend x) = (car cell))
-    (finding (list p-interval cell)
-             :such-that (intersects start end istart iend))))
-
-(defun sort-intervals (interval-map)
-  (sort interval-map #'< :key #'car))
-
-(defun collect-full-intersection (interval-map start end)
-  (assert (>= end start))
-  (iter
-    (for cell on interval-map)
-    (for (istart iend x) = (car cell))
-    (while (intersects start end istart iend))
-    (collecting x into xs)
-    (maximizing iend into max-iend)
-    (minimizing istart into min-istart)
-    (finally (return (if (intersects start end istart iend)
-                         (list (cdr cell) min-istart max-iend xs)
-                         (list cell min-istart max-iend xs))))))
-
-(defun insert-range-with (interval-map start end fn)
-  (assert (>= end start))
-  (if (null interval-map)
-      (list (list start end (funcall fn nil)))
-      (bind ((intersected (find-intersecting interval-map start end)))
-        (if intersected
-            (bind (((previous intersection) intersected)
-                   ((next istart iend xs)   (collect-full-intersection intersection start end))
-                   (new-cell                (cons (list (min istart start)
-                                                        (max iend   end)
-                                                        (funcall fn xs))
-                                                  next)))
-              (if previous
-                  (setf (cdr previous) new-cell)
-                  (setf interval-map   new-cell)))
-            (setf (cdr interval-map)
-                  (cons (list start end (funcall fn nil))
-                        (cdr interval-map))))
-        (sort-intervals interval-map))))
-
-(defun delete-range-with (interval-map start end fn)
-  (assert (>= end start))
-  (if (null interval-map)
-      interval-map
-      (bind ((intersected (find-intersecting interval-map start end)))
-        (if (not intersected)
-            interval-map
-            (bind (((previous intersection) intersected)
-                   ((next istart iend xs)   (collect-full-intersection intersection start end))
-                   (result                  (funcall fn istart iend xs)))
-              (if previous
-                  (setf (cdr previous) (if result (cons result next) next))
-                  (setf interval-map   (if result (cons result next) next))))))))
-
-#+nil
-(-> (interval-map)
-  (insert-range-with 2 4   (lambda (x) (if (null x) 'x (cons x 'x))))
-  (insert-range-with 6 8   (lambda (x) (if (null x) 'y (cons x 'y))))
-  (insert-range-with 10 12 (lambda (x) (if (null x) 'z (cons x 'z)))))
-
-#+nil
-(-> (interval-map)
-  (insert-range-with 2 4   (lambda (x) (if (null x) 'x (cons x 'x))))
-  (insert-range-with 4 8   (lambda (x) (if (null x) 'y (cons x 'y))))
-  (insert-range-with 10 12 (lambda (x) (if (null x) 'z (cons x 'z))))
-  (insert-range-with -1 1  (lambda (x) (if (null x) 'a (cons x 'a)))))
-
-#+nil
-(-> (interval-map)
-  (insert-range-with 2 4    (lambda (x) (if (null x) 'x (cons x 'x))))
-  (insert-range-with 4 8    (lambda (x) (if (null x) 'y (cons x 'y))))
-  (insert-range-with 10 12  (lambda (x) (if (null x) 'z (cons x 'z))))
-  (insert-range-with -1 13  (lambda (x) (if (null x) 'a (cons x 'a)))))
-
-#+nil
-(-> (interval-map)
-  (insert-range-with 2 4    (lambda (x) (if (null x) 'x (cons x 'x))))
-  (insert-range-with 4 8    (lambda (x) (if (null x) 'y (cons x 'y))))
-  (insert-range-with 10 12  (lambda (x) (if (null x) 'z (cons x 'z))))
-  (delete-range-with 1 3    (lambda (start end values) nil)))
+(defun areas-seen (box boxes-added)
+  (bind ((overlaps (->> (mapcar (lambda (other-box) (intersecting-box box other-box))
+                                boxes-added)
+                     (remove nil))))
+    ;; (format t "overlaps: ~a~%" overlaps)
+    (if overlaps
+        (iter
+          (for tail on overlaps)
+          (for overlap = (car tail))
+          (for (x-start x-end y-start y-end z-start z-end) = overlap)
+          (summing (* (1+ (- x-end x-start))
+                      (1+ (- y-end y-start))
+                      (1+ (- z-end z-start)))
+                   :into overlap-area)
+          (summing (areas-seen overlap (cdr tail))
+                   :into overlap-area-seen)
+          (finally (return (- overlap-area overlap-area-seen))))
+        0)))
 
 (defun part-2 ()
-  (bind ((instructions (parse-problem)))
+  (bind ((instructions (parse-problem))
+         (boxes-added  (list)))
     (iter
-      (with interval-map = (interval-map))
+      (for i from 0 below 10)
       (for (op x-start
                x-end
                y-start
                y-end
                z-start
                z-end) in instructions)
-      ())))
+      ;; For all the boxs we already have, remove the intersecting
+      ;; boxes from this one by intersecting with all of the removed
+      ;; boxes and then adding to the list of removed boxes.
+      (when (eq op 'on)
+        (bind ((current-box (list x-start
+                                  x-end
+                                  y-start
+                                  y-end
+                                  z-start
+                                  z-end))
+               (areas-seen (areas-seen current-box boxes-added)))
+          (format t "areas-seen: ~a~%" areas-seen)
+          (summing (- (* (1+ (- x-end x-start))
+                         (1+ (- y-end y-start))
+                         (1+ (- z-end z-start)))
+                      areas-seen))
+          (push current-box boxes-added))))))
 
 ;; 870227697432749 too low!
