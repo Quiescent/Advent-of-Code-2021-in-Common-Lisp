@@ -54,7 +54,7 @@
 (defun part-1 ()
   (bind ((map (make-hash-table :test #'equal)))
     (iter
-      (for i from 0 below 14)
+      (for i from 0 below 20)
       (for (op x-start
                x-end
                y-start
@@ -129,11 +129,81 @@
           (finally (return (- overlap-area overlap-area-seen))))
         0)))
 
+(defun turn-off-regions (off-instruction on-instructions)
+  (->>
+      (iter
+        (for instruction in on-instructions)
+        (bind ((intersection (intersecting-box instruction off-instruction)))
+          (if intersection
+              (bind (((op-i x-start-i x-end-i y-start-i y-end-i z-start-i z-end-i . rest) intersection)
+                     ((op   x-start   x-end   y-start   y-end   z-start   z-end   . rest) instruction))
+                (cond
+                  ;; on command inside of off command: don't collect any cubes!
+                  ((and (>= x-start x-start-i)
+                        (<= x-end   x-end-i)
+                        (>= y-start y-start-i)
+                        (<= y-end   y-end-i)
+                        (>= z-start z-start-i)
+                        (<= z-end   z-end-i)) nil)
+
+                  ;; off command inside of on command: collect 6 cubes
+                  ;;
+                  ;; I then realised that one can treat it as though it's
+                  ;; always contained and remove invalid cubes
+                  ;; afterwards!!
+                  (t
+                   ;; top slab
+                   (collecting (list 'on
+                                     x-start x-end
+                                     y-start y-end
+                                     z-start (1- z-start-i)))
+                   ;; bottom slab
+                   (collecting (list 'on
+                                     x-start      x-end
+                                     y-start      y-end
+                                     (1+ z-end-i) z-end))
+                   ;; left projected face
+                   (collecting (list 'on
+                                     x-start  (1- x-start-i)
+                                     y-start-i y-end-i
+                                     z-start-i z-end-i))
+                   ;; right projected face
+                   (collecting (list 'on
+                                     (1+ x-end-i) x-end
+                                     y-start-i    y-end-i
+                                     z-start-i    z-end-i))
+                   ;; front sliver
+                   (collecting (list 'on
+                                     x-start   x-end
+                                     y-start   (1- y-start-i)
+                                     z-start-i z-end-i))
+                   ;; back sliver
+                   (collecting (list 'on
+                                     x-start      x-end
+                                     (1+ y-end-i) y-end
+                                     z-start-i    z-end-i)))))
+              (collecting instruction))))
+    ;; (remove-if (lambda (instruction)
+    ;;              (bind (((op x-start x-end y-start y-end z-start z-end . rest) instruction))
+    ;;                (or (< x-end x-start)
+    ;;                    (< y-end y-start)
+    ;;                    (< z-end z-start)))))
+    ))
+
+(defun preprocess (instructions)
+  (iter
+    (with processed = (list))
+    (for instruction in instructions)
+    (if (eq (car instruction) 'on)
+        (push instruction processed)
+        (setf processed (turn-off-regions instruction processed)))
+    (finally (return processed))))
+
 (defun part-2 ()
-  (bind ((instructions (parse-problem))
+  (bind ((instructions (print (preprocess (subseq (parse-problem) 0 ;20
+                                                  ))))
          (boxes-added  (list)))
     (iter
-      (for i from 0 below 14)
       (for (op x-start
                x-end
                y-start
@@ -160,3 +230,5 @@
         (push current-box boxes-added)))))
 
 ;; 870227697432749 too low!
+;; 104672080181642 too low!
+;; 1334275219162622
