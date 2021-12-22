@@ -79,17 +79,18 @@
 ;; * max(min(c',z')-max(c,z),0)
 
 (defun intersecting-area (box-1 box-2)
-  (bind (((x-start-1 x-end-1 y-start-1 y-end-1 z-start-1 z-end-1) box-1)
-         ((x-start-2 x-end-2 y-start-2 y-end-2 z-start-2 z-end-2) box-2))
+  (bind (((op-1 x-start-1 x-end-1 y-start-1 y-end-1 z-start-1 z-end-1) box-1)
+         ((op-2 x-start-2 x-end-2 y-start-2 y-end-2 z-start-2 z-end-2) box-2))
     (* (max (1+ (- (min x-end-1 x-end-2) (max x-start-1 x-start-2))) 0)
        (max (1+ (- (min y-end-1 y-end-2) (max y-start-1 y-start-2))) 0)
        (max (1+ (- (min z-end-1 z-end-2) (max z-start-1 z-start-2))) 0))))
 
 (defun intersecting-box (box-1 box-2)
-  (bind (((x-start-1 x-end-1 y-start-1 y-end-1 z-start-1 z-end-1) box-1)
-         ((x-start-2 x-end-2 y-start-2 y-end-2 z-start-2 z-end-2) box-2))
+  (bind (((op-1 x-start-1 x-end-1 y-start-1 y-end-1 z-start-1 z-end-1) box-1)
+         ((op-2 x-start-2 x-end-2 y-start-2 y-end-2 z-start-2 z-end-2) box-2))
     (and (> (intersecting-area box-1 box-2) 0)
-         (list (max x-start-1 x-start-2)
+         (list op-1
+               (max x-start-1 x-start-2)
                (min x-end-1   x-end-2)
                (max y-start-1 y-start-2)
                (min y-end-1   y-end-2)
@@ -105,7 +106,7 @@
         (iter
           (for tail on overlaps)
           (for overlap = (car tail))
-          (for (x-start x-end y-start y-end z-start z-end) = overlap)
+          (for (op x-start x-end y-start y-end z-start z-end) = overlap)
           (summing (* (1+ (- x-end x-start))
                       (1+ (- y-end y-start))
                       (1+ (- z-end z-start)))
@@ -130,14 +131,14 @@
       ;; boxes from this one by intersecting with all of the removed
       ;; boxes and then adding to the list of removed boxes.
       (when (eq op 'on)
-        (bind ((current-box (list x-start
+        (bind ((current-box (list op
+                                  x-start
                                   x-end
                                   y-start
                                   y-end
                                   z-start
                                   z-end))
                (areas-seen (areas-seen current-box boxes-added)))
-          (format t "areas-seen: ~a~%" areas-seen)
           (summing (- (* (1+ (- x-end x-start))
                          (1+ (- y-end y-start))
                          (1+ (- z-end z-start)))
