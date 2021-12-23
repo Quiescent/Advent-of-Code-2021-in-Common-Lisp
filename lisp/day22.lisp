@@ -74,10 +74,6 @@
            (for (key value) in-hashtable map)
            (counting value)))))))
 
-;; max(min(a',x')-max(a,x),0)
-;; * max(min(b',y')-max(b,y),0)
-;; * max(min(c',z')-max(c,z),0)
-
 (defun intersecting-area (box-1 box-2)
   (bind (((op-1 x-start-1 x-end-1 y-start-1 y-end-1 z-start-1 z-end-1 . rest) box-1)
          ((op-2 x-start-2 x-end-2 y-start-2 y-end-2 z-start-2 z-end-2 . rest) box-2))
@@ -183,12 +179,11 @@
                                      (1+ y-end-i) y-end
                                      z-start-i    z-end-i)))))
               (collecting instruction))))
-    ;; (remove-if (lambda (instruction)
-    ;;              (bind (((op x-start x-end y-start y-end z-start z-end . rest) instruction))
-    ;;                (or (< x-end x-start)
-    ;;                    (< y-end y-start)
-    ;;                    (< z-end z-start)))))
-    ))
+    (remove-if (lambda (instruction)
+                 (bind (((op x-start x-end y-start y-end z-start z-end . rest) instruction))
+                   (or (< x-end x-start)
+                       (< y-end y-start)
+                       (< z-end z-start)))))))
 
 (defun preprocess (instructions)
   (iter
@@ -200,8 +195,7 @@
     (finally (return processed))))
 
 (defun part-2 ()
-  (bind ((instructions (print (preprocess (subseq (parse-problem) 0 ;20
-                                                  ))))
+  (bind ((instructions (preprocess (parse-problem)))
          (boxes-added  (list)))
     (iter
       (for (op x-start
@@ -231,4 +225,4 @@
 
 ;; 870227697432749 too low!
 ;; 104672080181642 too low!
-;; 1334275219162622
+;; 1334275219162622 Correct!
