@@ -26,16 +26,17 @@
 (defun fill-coord-pool (max-x max-y)
   (iter
     (for y from 0 to max-y)
-    (push (cons y (iter
-                    (for x from 0 to max-x)
-                    (collecting (cons x (cons x y)))))
-          coord-pool)))
+    (iter
+      (for x from 0 to max-x)
+      (setf (aref coord-pool y x) (cons x y)))))
 
 (defun coord (x y)
-  (->> (assoc y coord-pool)
-    cdr
-    (assoc x)
-    cdr))
+  (aref coord-pool y x))
+
+#+nil
+(let ((coord-pool (make-array (list 15 15))))
+  (fill-coord-pool 14 14)
+  (coord 2 3))
 
 ;; Amphipod is (Symbol Bool Cons)
 (defun parse-problem (&optional (filename "day23.in"))
@@ -284,7 +285,7 @@
       (return best))
     (when (> (cadr current-state) best)
       (next-iteration))
-    ;; (for i from 0 below 10000)
+    ;; (for i from 0 below 50000)
     ;; (format t "correctly-ordered: ~a~%" (car current-state))
     (when (and (= (car current-state) (length amphipods)))
       ;; (format t "(car current-state): ~a~%" (car current-state))
@@ -301,7 +302,7 @@
                        ))))
 
 (defun part-1 ()
-  (let ((coord-pool           (list))
+  (let ((coord-pool           (make-array (list 15 15)))
         (squares-around-cache (make-hash-table :test #'eq)))
     (fill-coord-pool 14 14)
     (bind (((map amphipods) (parse-problem))
@@ -318,7 +319,7 @@
 ;; 19160 correct!
 
 (defun part-2 ()
-  (let ((coord-pool           (list))
+  (let ((coord-pool           (make-array (list 15 15)))
         (squares-around-cache (make-hash-table :test #'eq)))
     (fill-coord-pool 14 14)
     (bind (((map amphipods) (parse-problem "day23-part-2.in"))
