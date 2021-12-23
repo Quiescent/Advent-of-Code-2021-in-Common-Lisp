@@ -298,7 +298,8 @@
       ;; (when (> #1=(gethash (caddr next-state) seen most-positive-fixnum)
       ;;          (cadr next-state))
       ;;   (setf #1# (cadr next-state)))
-      (cl-heap:enqueue to-explore next-state (- 8 (car next-state));(cadr next-state) ;(- 8 (car next-state))
+      (cl-heap:enqueue to-explore next-state (+ (* 10000 (- 8 (car next-state)))
+                                                (cadr next-state)) ;(cadr next-state) ;(- 8 (car next-state))
                        ))))
 
 (defun part-1 ()
