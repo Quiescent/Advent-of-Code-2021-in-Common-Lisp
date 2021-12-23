@@ -215,15 +215,33 @@
 (defvar corridor-coordinates)
 
 (defun states-from (state map depth)
-  (bind ((amphipods (caddr state))
-         (energy    (cadr state))
-         (correct   (car state)))
+  (bind ((amphipods     (caddr state))
+         (energy        (cadr state))
+         (correct       (car state))
+         (has-root-home (list)))
     (append
+     ;; Try to move any amphipod that's in the corridor to its final
+     ;; position
+     (iter outer
+       (for amphipod in amphipods)
+       (for (type . coord) = amphipod)
+       (bind ((destination-coord (destination-coord amphipod amphipods depth)))
+        (awhen (and (not (amphipod-is-done amphipod amphipods depth))
+                    (path-to-destination-is-clear amphipod map amphipods depth destination-coord))
+          (push amphipod has-root-home)
+          (collecting
+           (list (1+ correct)
+                 (+ energy (* (energy type) it))
+                 (swap-amphipod-at amphipods
+                                   coord
+                                   (cons type destination-coord)))))))
+
      ;; Pick any amphipod not in it's destination and not in the
      ;; corridor and create a state from each position it could be in
      ;; the corridor (other than directly above a room)
      (iter outer
        (for amphipod in amphipods)
+       (when (member amphipod has-root-home))
        (for (type . coord) = amphipod)
        (when (and (not (= (cdr coord) 1))
                   (not (amphipod-is-done amphipod amphipods depth)))
@@ -235,22 +253,7 @@
                                    (+ energy (* (energy type) it))
                                    (swap-amphipod-at amphipods
                                                      coord
-                                                     (cons type dest-coord)))))))))
-
-     ;; Try to move any amphipod that's in the corridor to its final
-     ;; position
-     (iter outer
-       (for amphipod in amphipods)
-       (for (type . coord) = amphipod)
-       (bind ((destination-coord (destination-coord amphipod amphipods depth)))
-        (awhen (and (not (amphipod-is-done amphipod amphipods depth))
-                    (path-to-destination-is-clear amphipod map amphipods depth destination-coord))
-          (collecting
-           (list (1+ correct)
-                 (+ energy (* (energy type) it))
-                 (swap-amphipod-at amphipods
-                                   coord
-                                   (cons type destination-coord))))))))))
+                                                     (cons type dest-coord))))))))))))
 
 (defun amphipod-x (amphipod)
   (cadr amphipod))
