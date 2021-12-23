@@ -119,31 +119,35 @@
       (car other)))
 
 (defun path-between-coords-is-clear (start-coord destination-coord map amphipods)
-  (iter
-    (with to-explore = (make-queue :simple-queue))
-    (with seen       = (make-hash-table :test #'eq))
-    (with from       = (make-hash-table :test #'eq))
-    (initially
-     (iter
-       (for coord in (empty-squares-around start-coord amphipods map))
-       (qpush to-explore coord)
-       (setf (gethash coord from) start-coord)
-       (setf (gethash coord seen) t)))
-    (while (not (= 0 (qsize to-explore))))
-    (for next-coord = (qpop to-explore))
-    (when (eq next-coord destination-coord)
-      (return
-        (iter
-          (with current-coord = destination-coord)
-          (while (not (eq current-coord start-coord)))
-          (setf current-coord (gethash current-coord from))
-          (counting t))))
-    (iter
-      (for coord in (empty-squares-around next-coord amphipods map))
-      (when (not #1=(gethash coord seen))
-        (qpush to-explore coord)
-        (setf #1# t)
-        (setf (gethash coord from) next-coord)))))
+  (bind (((x-dest . y-dest) destination-coord)
+         ((x      . y)      start-coord)
+         (going-left        (< x-dest x)))
+    (when (null (aref current-amphipod-locations (cdr destination-coord) (car destination-coord)))
+      (iter
+        (for at-x = (= x x-dest))
+        (if (not at-x)
+            (bind ((next-x        (if going-left (1- x) (1+ x)))
+                   (space-to-side (and (= y 1)
+                                       (null (aref current-amphipod-locations y next-x)))))
+              (if space-to-side
+                  (setf x next-x)
+                  (if (eq y 1)
+                      (return nil)
+                      (bind ((next-y      (1- y))
+                             (space-above (and (> y 1)
+                                               (null (aref current-amphipod-locations next-y x)))))
+                        (if space-above
+                            (setf y next-y)
+                            (return nil))))))
+            (bind ((at-y (= y y-dest)))
+              (if at-y
+                  (return length)
+                  (bind ((next-y      (1+ y))
+                         (space-below (null (aref current-amphipod-locations next-y x))))
+                    (if space-below
+                        (setf y next-y)
+                        (return nil))))))
+        (counting t into length)))))
 
 (defun room-contains-correct-amphipods (amphipod amphipods depth)
   (bind ((destination-column (destination-column amphipod)))
@@ -196,7 +200,7 @@
 (defun empty-squares-around (coord amphipods map)
   (iter
     (for coord-around in (cached-spaces coord map))
-    (when (null (gethash coord-around current-amphipod-locations))
+    (when (null (aref current-amphipod-locations (cdr coord-around) (car coord-around)))
       (collecting coord-around))))
 
 (defun swap-amphipod-at (amphipods coord new-amphipod)
@@ -221,11 +225,16 @@
   (bind ((amphipods                  (caddr state))
          (energy                     (cadr state))
          (correct                    (car state))
-         (has-root-home              (list))
-         (current-amphipod-locations (make-hash-table :test #'eq)))
+         (has-root-home              (list)))
+    (iter
+      (for y from 0 below 15)
+      (iter
+        (for x from 0 below 15)
+        (setf (aref current-amphipod-locations y x) nil)))
     (iter
       (for amphipod in amphipods)
-      (setf (gethash (cdr amphipod) current-amphipod-locations) t))
+      (for (x . y) = (cdr amphipod))
+      (setf (aref current-amphipod-locations y x) t))
     (append
      ;; Try to move any amphipod that's in the corridor to its final
      ;; position
@@ -285,7 +294,7 @@
       (return best))
     (when (> (cadr current-state) best)
       (next-iteration))
-    ;; (for i from 0 below 50000)
+    ;; (for i from 0 below 100000)
     ;; (format t "correctly-ordered: ~a~%" (car current-state))
     (when (and (= (car current-state) (length amphipods)))
       ;; (format t "(car current-state): ~a~%" (car current-state))
@@ -304,7 +313,8 @@
 
 (defun part-1 ()
   (let ((coord-pool           (make-array (list 15 15)))
-        (squares-around-cache (make-hash-table :test #'eq)))
+        (squares-around-cache (make-hash-table :test #'eq))
+        (current-amphipod-locations (make-array (list 15 15))))
     (fill-coord-pool 14 14)
     (bind (((map amphipods) (parse-problem))
            (corridor-coordinates (list (coord 1 1)
@@ -321,7 +331,8 @@
 
 (defun part-2 ()
   (let ((coord-pool           (make-array (list 15 15)))
-        (squares-around-cache (make-hash-table :test #'eq)))
+        (squares-around-cache (make-hash-table :test #'eq))
+        (current-amphipod-locations (make-array (list 15 15))))
     (fill-coord-pool 14 14)
     (bind (((map amphipods) (parse-problem "day23-part-2.in"))
            (corridor-coordinates (list (coord 1 1)
@@ -334,3 +345,4 @@
       (find-cheapest-cost amphipods map 5))))
 
 ;; 48800 too high!
+;; 47236 too high!
