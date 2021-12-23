@@ -222,7 +222,7 @@
        (bind ((destination-coord (destination-coord amphipod amphipods depth)))
         (awhen (and (not (amphipod-is-done amphipod amphipods depth))
                     (path-to-destination-is-clear amphipod map amphipods depth destination-coord))
-          (push amphipod has-root-home)
+          ;; (push amphipod has-root-home)
           (collecting
            (list (1+ correct)
                  (+ energy (* (energy type) it))
@@ -257,6 +257,16 @@
 (defun amphipod-y (amphipod)
   (cddr amphipod))
 
+(defun amphipods-key (amphipods)
+  (iter outer
+    (for (coord (type . coord-or-status)) in-hashtable amphipods)
+    (collecting (aref (symbol-name type) 0) :result-type string)
+    (if (consp coord-or-status)
+        (iter
+          (for char in-string (princ-to-string (+ (car coord-or-status) (* 15 (cdr coord-or-status)))))
+          (in outer (collecting char :result-type string)))
+        (collecting #\# :result-type string))))
+
 (defun find-cheapest-cost (amphipods map depth)
   (iter
     (with to-explore = (make-instance 'cl-heap:priority-queue))
@@ -267,29 +277,25 @@
              (iter
                (for (coord amphipod) in-hashtable amphipods)
                (counting (amphipod-is-done amphipod amphipods depth)))))
-       (cl-heap:enqueue to-explore (list (print correct) 0 amphipods) 0)
-       (setf (gethash amphipods seen) 0)))
+       (cl-heap:enqueue to-explore (list correct 0 amphipods) 0)
+       (setf (gethash (amphipods-key amphipods) seen) 0)))
     (for current-state = (cl-heap:dequeue to-explore))
     (when (null current-state)
       (return best))
     (when (> (cadr current-state) best)
       (next-iteration))
-    ;; (for i from 0 below 1000000)
-    ;; (format t "correctly-ordered: ~a~%" (car current-state))
     (when (and (= (car current-state) (hash-table-count amphipods)))
-      ;; (format t "(car current-state): ~a~%" (car current-state))
-      ;; (format t "current-state: ~a~%" current-state)
       (when (< (cadr current-state) best)
         (format t "best: ~a~%" (cadr current-state)))
       (setf best (min best (cadr current-state))))
     (iter
       (for next-state in (states-from current-state map depth))
-      ;; (when (> #1=(gethash (caddr next-state) seen most-positive-fixnum)
-      ;;          (cadr next-state))
-      ;;   (setf #1# (cadr next-state)))
-      (cl-heap:enqueue to-explore next-state (+ (* 10000 (- 8 (car next-state)))
-                                                (cadr next-state)) ;(cadr next-state) ;(- 8 (car next-state))
-                       ))))
+      (when (> #1=(gethash (amphipods-key (caddr next-state)) seen most-positive-fixnum)
+               (cadr next-state))
+        (setf #1# (cadr next-state))
+        (cl-heap:enqueue to-explore next-state (+ (* 10000 (- 8 (car next-state)))
+                                                  (cadr next-state)) ;(cadr next-state) ;(- 8 (car next-state))
+                         )))))
 
 (defun part-1 ()
   (let ((coord-pool (make-array (list 15 15))))
