@@ -82,23 +82,25 @@
 ;; Once an amphipod stops moving in the hallway, it will stay in that
 ;; spot until it can move into a room
 
-(defun amphipod-is-done (amphipod amphipods)
+(defun amphipod-is-done (amphipod amphipods depth)
   (bind (((type active (x . y)) amphipod)
-         (at-top                (= y 2))
-         (amphipod-below        (and at-top (get-amphipod-at amphipods (coord x 3)))))
+         (above-others          (< 1 y depth)))
     (declare (ignorable active))
-    (and (or (not at-top)
-             (amphipods-are-same-type amphipod amphipod-below))
+    (and (or (not above-others)
+             (iter
+               (for yi from y to depth)
+               (for amphipod-below = (get-amphipod-at amphipods (coord x yi)))
+               (always (amphipods-are-same-type amphipod amphipod-below))))
          (case type
            (A (and (= x 3) (>= y 2)))
            (B (and (= x 5) (>= y 2)))
            (C (and (= x 7) (>= y 2)))
            (D (and (= x 9) (>= y 2)))))))
 
-(defun done (amphipods)
+(defun done (amphipods depth)
   (iter
     (for amphipod in amphipods)
-    (always (amphipod-is-done amphipod amphipods))))
+    (always (amphipod-is-done amphipod amphipods depth))))
 
 (defun get-amphipod-at (amphipods coord)
   (find coord amphipods :key #'caddr))
@@ -161,18 +163,21 @@
   (bind (((map amphipods) (parse-problem)))
     (path-to-room-is-clear (coord 1 1) 3 map (list (list 'A nil (coord 2 1))))))
 
-(defun path-to-destination-is-clear (amphipod map amphipods)
-  (bind (((type active coord)        amphipod)
-         (amphipod-at-bottom-of-room (get-amphipod-at amphipods (coord (destination-column amphipod) 3)))
-         (amphipod-at-top-of-room    (get-amphipod-at amphipods (coord (destination-column amphipod) 2)))
-         (room-can-take-amphipod     (and (null amphipod-at-top-of-room)
-                                          (or (null amphipod-at-bottom-of-room)
-                                              (amphipods-are-same-type amphipod
-                                                                       amphipod-at-bottom-of-room))))
-         (has-clear-path             (path-between-coords-is-clear coord
-                                                                   (destination-coord amphipod amphipods)
-                                                                   map
-                                                                   amphipods)))
+(defun room-contains-correct-amphipods (amphipod amphipods depth)
+  (bind ((destination-column (destination-column amphipod)))
+    (iter
+      (for yi from 2 to depth)
+      (for occupant = (get-amphipod-at amphipods (coord destination-column yi)))
+      (always (or (null occupant)
+                  (amphipods-are-same-type amphipod occupant))))))
+
+(defun path-to-destination-is-clear (amphipod map amphipods depth)
+  (bind (((type active coord)    amphipod)
+         (room-can-take-amphipod (room-contains-correct-amphipods amphipod amphipods depth))
+         (has-clear-path         (path-between-coords-is-clear coord
+                                                               (destination-coord amphipod amphipods depth)
+                                                               map
+                                                               amphipods)))
     (declare (ignore type active))
     (and room-can-take-amphipod has-clear-path)))
 
@@ -180,22 +185,28 @@
 (let ((coord-pool (list)))
   (fill-coord-pool 14 14)
   (bind (((map amphipods) (parse-problem)))
-    (path-to-destination-is-clear (list 'A nil (coord 2 1)) map (list (list 'A nil (coord 2 1))))))
+    (path-to-destination-is-clear (list 'A nil (coord 2 1)) map (list (list 'A nil (coord 2 1))) 3)))
 
 #+nil
 (let ((coord-pool (list)))
   (fill-coord-pool 14 14)
   (bind (((map amphipods) (parse-problem)))
     (path-to-destination-is-clear (list 'A nil (coord 2 1)) map (list (list 'A nil (coord 2 1))
-                                                                      (list 'B nil (coord 3 3))))))
+                                                                      (list 'B nil (coord 3 3))) 3)))
 
 ;; Assume that the room is a valid destination
-(defun destination-coord (amphipod amphipods)
-  (bind (((type active coord)        amphipod)
-         (destination-column         (destination-column amphipod))
-         (amphipod-at-bottom-of-room (get-amphipod-at amphipods (coord (destination-column amphipod) 3))))
+(defun destination-coord (amphipod amphipods depth)
+  (bind (((type active coord) amphipod)
+         (destination-column  (destination-column amphipod)))
     (declare (ignore type active coord))
-    (coord destination-column (if amphipod-at-bottom-of-room 2 3))))
+    (coord destination-column
+           (or (iter
+                 (for yi from 2 to depth)
+                 (finding yi
+                          :such-that (get-amphipod-at amphipods
+                                                      (coord (destination-column amphipod)
+                                                             (1+ yi)))))
+               depth))))
 
 ;; State is (Number . (Amphipod))
 
@@ -249,10 +260,10 @@
 
 (defvar corridor-coordinates)
 
-(defun states-from (state map)
-  (bind ((amphipods       (caddr state))
-         (energy          (cadr state))
-         (correct         (car state)))
+(defun states-from (state map depth)
+  (bind ((amphipods (caddr state))
+         (energy    (cadr state))
+         (correct   (car state)))
     (append
      ;; Pick any amphipod not in it's destination and not in the
      ;; corridor and create a state from each position it could be in
@@ -261,7 +272,7 @@
        (for amphipod in amphipods)
        (for (type active coord) = amphipod)
        (when (and (not (= (cdr coord) 1))
-                  (not (amphipod-is-done amphipod amphipods)))
+                  (not (amphipod-is-done amphipod amphipods depth)))
          (iter
            (for dest-coord in corridor-coordinates)
            (awhen (path-between-coords-is-clear coord dest-coord map amphipods)
@@ -277,14 +288,14 @@
      (iter outer
        (for amphipod in amphipods)
        (for (type active coord) = amphipod)
-       (awhen (and (not (amphipod-is-done amphipod amphipods))
-                   (path-to-destination-is-clear amphipod map amphipods))
+       (awhen (and (not (amphipod-is-done amphipod amphipods depth))
+                   (path-to-destination-is-clear amphipod map amphipods depth))
          (collecting
           (list (1+ correct)
                 (+ energy (* (energy type) it))
                 (swap-amphipod-at amphipods
                                   coord
-                                  (list type active (destination-coord amphipod amphipods))))))))))
+                                  (list type active (destination-coord amphipod amphipods depth))))))))))
 
 #+nil
 (let ((coord-pool (list))
@@ -294,7 +305,7 @@
          (amphipods `((A NIL ,(coord 9 3)) (C NIL ,(coord 7 3)) (D NIL ,(coord 5 3))
                       (A NIL ,(coord 3 3)) (D NIL ,(coord 9 2)) (B NIL ,(coord 3 2))
                       (C NIL ,(coord 5 2)) (B NIL ,(coord 4 1)))))
-    (path-to-destination-is-clear (list 'c nil (coord 5 2)) map amphipods)))
+    (path-to-destination-is-clear (list 'c nil (coord 5 2)) map amphipods depth)))
 
 #+nil
 (let ((coord-pool (list)))
@@ -309,41 +320,30 @@
 (defun amphipod-y (amphipod)
   (cdaddr amphipod))
 
-(defun find-cheapest-cost (amphipods map)
+(defun find-cheapest-cost (amphipods map depth)
   (iter
     (with to-explore = (make-instance 'cl-heap:priority-queue))
-    (with seen       = (make-hash-table :test #'equal))
     (with best       = most-positive-fixnum)
     (initially
      (let ((correct
              (iter
                (for amphipod in amphipods)
-               (counting (amphipod-is-done amphipod amphipods)))))
-       (cl-heap:enqueue to-explore (list correct 0 amphipods) 0))
-     ;; (setf (gethash amphipods seen) t)
-     )
-    ;; (for i from 0 below 10000)
+               (counting (amphipod-is-done amphipod amphipods depth)))))
+       (cl-heap:enqueue to-explore (list (print correct) 0 amphipods) 0)))
     (for current-state = (cl-heap:dequeue to-explore))
-    ;; (iter
-    ;;   (for amphipod in (caddr current-state))
-    ;;   (counting (amphipod-is-done amphipod) into correct)
-    ;;   (finally
-    ;;    (format t "correct: ~a~%" correct)))
-    ;; (format t "other-correct: ~a~%" (car current-state))
     (when (null current-state)
       (return best))
     (when (> (cadr current-state) best)
       (next-iteration))
-    ;; (format t "current-state: ~a~%" current-state)
-    (when (and (= (car current-state) 8))
+    (for i from 0 below 10000)
+    (format t "correctly-ordered: ~a~%" (car current-state))
+    (when (and (= (car current-state) (length amphipods)))
+      (format t "(car current-state): ~a~%" (car current-state))
+      (format t "current-state: ~a~%" current-state)
       (setf best (min best (cadr current-state)))
       (format t "best: ~a~%" best))
     (iter
-      (for next-state in (states-from current-state map))
-      ;; (format t "next-state: ~a~%" next-state)
-      ;; (when #1=(gethash (caddr next-state) seen)
-      ;;       (next-iteration))
-      ;; (setf #1# t)
+      (for next-state in (states-from current-state map depth))
       (cl-heap:enqueue to-explore next-state (- 8 (car next-state));(cadr next-state) ;(- 8 (car next-state))
                        ))))
 
@@ -359,7 +359,7 @@
                                        (coord 8 1)
                                        (coord 10 1)
                                        (coord 11 1))))
-      (find-cheapest-cost amphipods map))))
+      (find-cheapest-cost amphipods map 3))))
 
 ;; 23356 too high!
 ;; 19160 correct!
@@ -376,4 +376,4 @@
                                        (coord 8 1)
                                        (coord 10 1)
                                        (coord 11 1))))
-      (find-cheapest-cost amphipods map))))
+      (find-cheapest-cost amphipods map 5))))
