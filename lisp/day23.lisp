@@ -190,10 +190,12 @@
                 (when (and (eq 'space (gethash coord map)))
                   (collecting coord)))))))
 
+(defvar current-amphipod-locations)
+
 (defun empty-squares-around (coord amphipods map)
   (iter
     (for coord-around in (cached-spaces coord map))
-    (when (null (find coord-around amphipods :key #'cdr :test #'eq))
+    (when (null (gethash coord-around current-amphipod-locations))
       (collecting coord-around))))
 
 (defun swap-amphipod-at (amphipods coord new-amphipod)
@@ -215,10 +217,14 @@
 (defvar corridor-coordinates)
 
 (defun states-from (state map depth)
-  (bind ((amphipods     (caddr state))
-         (energy        (cadr state))
-         (correct       (car state))
-         (has-root-home (list)))
+  (bind ((amphipods                  (caddr state))
+         (energy                     (cadr state))
+         (correct                    (car state))
+         (has-root-home              (list))
+         (current-amphipod-locations (make-hash-table :test #'eq)))
+    (iter
+      (for amphipod in amphipods)
+      (setf (gethash (cdr amphipod) current-amphipod-locations) t))
     (append
      ;; Try to move any amphipod that's in the corridor to its final
      ;; position
