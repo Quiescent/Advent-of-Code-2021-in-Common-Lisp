@@ -1,4 +1,8 @@
+;; ==Section 1==
+
 inp w
+
+;; Set x => 1
 mul x 0
 add x z
 mod x 26
@@ -6,17 +10,25 @@ div z 1
 add x 13
 eql x w
 eql x 0
+
+;; Multiply z by 26
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
 mul y 0
+
+;; Set z => z + 5 + first digit
 add y w
 add y 5
 mul y x
 add z y
+
+;; ==Section 2==
 inp w
+
+;; Set x => 1
 mul x 0
 add x z
 mod x 26
@@ -24,17 +36,26 @@ div z 1
 add x 15
 eql x w
 eql x 0
+
+;; Multiply z by 26
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
+
+;; Set z => z + 14 + second digit
 mul y 0
 add y w
 add y 14
 mul y x
 add z y
+
+;; ==Section 3==
+
 inp w
+
+;; Set x => 1
 mul x 0
 add x z
 mod x 26
@@ -42,17 +63,26 @@ div z 1
 add x 15
 eql x w
 eql x 0
+
+;; Multiply z by 26
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
+
+;; Set z => z + 15 + third digit
 mul y 0
 add y w
 add y 15
 mul y x
 add z y
+
+;; ==Section 4==
+
 inp w
+
+;; Set x => 1
 mul x 0
 add x z
 mod x 26
@@ -60,17 +90,26 @@ div z 1
 add x 11
 eql x w
 eql x 0
+
+;; Multiply z by 26
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
+
+;; Set z => z + 16 + fourth digit
 mul y 0
 add y w
 add y 16
 mul y x
 add z y
+
+;; ==Section 5==
+
 inp w
+
+;; if (z % 26 - 16 == fifth digit) Set z => z / 26 else set x => 1
 mul x 0
 add x z
 mod x 26
@@ -78,17 +117,25 @@ div z 26
 add x -16
 eql x w
 eql x 0
+
+;; Skip if above condition holds
 mul y 0
 add y 25
-mul y x
+mul y x ; x should be zero if we met the condition
 add y 1
 mul z y
+
 mul y 0
 add y w
 add y 8
-mul y x
+mul y x ; x should be zero if we met the condition
 add z y
+
+;; ==Section 6==
+
 inp w
+
+;; if (z % 26 - 11 === sixth digit) Set z => z / 26
 mul x 0
 add x z
 mod x 26
@@ -96,6 +143,7 @@ div z 26
 add x -11
 eql x w
 eql x 0
+
 mul y 0
 add y 25
 mul y x
@@ -106,7 +154,11 @@ add y w
 add y 9
 mul y x
 add z y
+
+;; ==Section 7==
 inp w
+
+;; if (z % 26 - 6 === seventh digit) set z => z / 26
 mul x 0
 add x z
 mod x 26
@@ -114,17 +166,23 @@ div z 26
 add x -6
 eql x w
 eql x 0
+
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
+
 mul y 0
 add y w
 add y 2
 mul y x
 add z y
+
+;; ==Section 8==
+;; Set z => (z * 26) + 13 + eightth digit
 inp w
+
 mul x 0
 add x z
 mod x 26
@@ -132,17 +190,23 @@ div z 1
 add x 11
 eql x w
 eql x 0
+
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
+
 mul y 0
 add y w
 add y 13
 mul y x
 add z y
+
+;; ==Section 9==
+;; Set z => (z * 26) + 16 + ninth digit
 inp w
+
 mul x 0
 add x z
 mod x 26
@@ -150,17 +214,23 @@ div z 1
 add x 10
 eql x w
 eql x 0
+
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
+
 mul y 0
 add y w
 add y 16
 mul y x
 add z y
+
+;; ==Section 10==
+;; if (z % 26 - 10 === tenth digit) set z => z / 26
 inp w
+
 mul x 0
 add x z
 mod x 26
@@ -168,17 +238,23 @@ div z 26
 add x -10
 eql x w
 eql x 0
+
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
+
 mul y 0
 add y w
 add y 6
 mul y x
 add z y
+
+;; ==Section 11==
+;; if (z % 26 - 8 === eleventh digit) set z => z / 26
 inp w
+
 mul x 0
 add x z
 mod x 26
@@ -186,17 +262,23 @@ div z 26
 add x -8
 eql x w
 eql x 0
+
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
+
 mul y 0
 add y w
 add y 6
 mul y x
 add z y
+
+;; ==Section 12==
+;; if (z % 26 - 11 === twelth digit) set z => z / 26
 inp w
+
 mul x 0
 add x z
 mod x 26
@@ -204,17 +286,23 @@ div z 26
 add x -11
 eql x w
 eql x 0
+
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
+
 mul y 0
 add y w
 add y 9
 mul y x
 add z y
+
+;; ==Section13==
+;; Set z => (z * 26) + 11 + thirteenth digit
 inp w
+
 mul x 0
 add x z
 mod x 26
@@ -222,17 +310,23 @@ div z 1
 add x 12
 eql x w
 eql x 0
+
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
+
 mul y 0
 add y w
 add y 11
 mul y x
 add z y
+
+;; ==Section 14==
+;; if (z % 26 - 15 === fourteenth digit) set z => z / 26
 inp w
+
 mul x 0
 add x z
 mod x 26
@@ -240,11 +334,13 @@ div z 26
 add x -15
 eql x w
 eql x 0
+
 mul y 0
 add y 25
 mul y x
 add y 1
 mul z y
+
 mul y 0
 add y w
 add y 5
